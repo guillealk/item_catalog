@@ -33,5 +33,5 @@ What things you need to install the software and how to install them
 Once the vagrant machine is up and the database is setted, do the following steps:
 
 1. Run **python project.py**
-2. Go to your web browser and enter ***http://localhost:8000/***
+2. Go to your web browser and enter ***http://localhost:5000/***
 
