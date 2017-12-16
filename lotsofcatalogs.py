@@ -1,13 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
- 
+
 from database_setup import Catalog, Base, CatalogItem, User
- 
+
 engine = create_engine('sqlite:///catalog.db')
 # Bind the engine to the metadata of the Base class so that the
 # declaratives can be accessed through a DBSession instance
 Base.metadata.bind = engine
- 
+
 DBSession = sessionmaker(bind=engine)
 # A DBSession() instance establishes all conversations with the database
 # and represents a "staging zone" for all the objects loaded into the
@@ -26,7 +26,7 @@ session.commit()
 
 
 catalog1 = Catalog(user_id=1,
-                   name="Soccer") 
+                   name="Soccer")
 session.add(catalog1)
 session.commit()
 
@@ -45,13 +45,13 @@ session.add(catalogItem2)
 session.commit()
 
 catalog2 = Catalog(user_id=1,
-                   name="Basketball") 
+                   name="Basketball")
 session.add(catalog2)
 session.commit()
 
 
 catalog3 = Catalog(user_id=1,
-                   name="Baseball") 
+                   name="Baseball")
 session.add(catalog3)
 session.commit()
 
@@ -64,13 +64,13 @@ session.add(catalogItem3)
 session.commit()
 
 catalog4 = Catalog(user_id=1,
-                   name="Frisbee") 
+                   name="Frisbee")
 session.add(catalog4)
 session.commit()
 
 
 catalog5 = Catalog(user_id=1,
-                   name="Snowboarding") 
+                   name="Snowboarding")
 session.add(catalog5)
 session.commit()
 
