@@ -66,11 +66,12 @@ def fbconnect():
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.8/me"
     '''
-        Due to the formatting for the result from the server token exchange we have to
-        split the token first on commas and select the first index which gives us the key : value
-        for the server access token then we split it on colons to pull out the actual token value
-        and replace the remaining quotes with nothing so that it can be used directly in the graph
-        api calls
+        Due to the formatting for the result from the server token exchange
+        we have to split the token first on commas and select the first index
+        which gives us the key : value for the server access token then we
+        split it on colons to pull out the actual token value and replace the
+        remaining quotes with nothing so that it can be used directly in the
+        graph api calls
     '''
     token = result.split(',')[0].split(':')[1].replace('"', '')
 
@@ -198,6 +199,8 @@ def gconnect():
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
+    # ADD PROVIDER TO LOGIN SESSION
+    login_session['provider'] = 'google'
 
     # see if user exists, if it doesn't make a new one
     user_id = getUserID(data["email"])
@@ -216,14 +219,13 @@ def gconnect():
     print "done!"
     return output
 
+
 # User Helper Functions
-
-
 def createUser(login_session):
-    newUser = User(name=login_session['username'], 
-                   email=login_session['email'],
-                   picture=login_session['picture'])
-    session.add(newUser)
+    new_user = User(name=login_session['username'],
+                    email=login_session['email'],
+                    picture=login_session['picture'])
+    session.add(new_user)
     session.commit()
     user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
@@ -244,7 +246,7 @@ def getUserID(email):
 # DISCONNECT - Revoke a current user's token and reset their login_session
 @app.route('/gdisconnect')
 def gdisconnect():
-        # Only disconnect a connected user.
+    # Only disconnect a connected user.
     access_token = login_session.get('access_token')
     if access_token is None:
         response = make_response(
@@ -254,30 +256,19 @@ def gdisconnect():
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-
     if result['status'] == '200':
-        # Reset the user's sesson.
-        del login_session['access_token']
-        del login_session['gplus_id']
+       # del login_session['access_token']
+       # del login_session['gplus_id']
         del login_session['username']
         del login_session['email']
         del login_session['picture']
-
         response = make_response(json.dumps('Successfully disconnected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
     else:
-        # For whatever reason, the given token was invalid.
-        response = make_response(
-            json.dumps('Failed to revoke token for given user.', 400))
+        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
         response.headers['Content-Type'] = 'application/json'
         return response
-
-
-
-
-
-
 
 # JSON APIs to view Catalog Information
 @app.route('/catalog/<catalog_name>/catalog/JSON')
@@ -370,7 +361,11 @@ def showCategories(catalog_name):
     catalog = session.query(Catalog).filter_by(name=catalog_name).one()
     creator = getUserInfo(catalog.user_id)
     items = session.query(CatalogItem).filter_by(catalog_id=catalog.id).all()
+    print login_session, "****************"
     if 'username' not in login_session or creator.id != login_session['user_id']:
+        print "holaaa"
+        print login_session['user_id']
+        print login_session['username']
         return render_template('publicCatalogItems.html', items=items, catalogs=catalogs, name= catalog.name)
     else:
         return render_template('catalogItems.html', items=items, catalogs=catalogs, name= catalog.name)
@@ -379,7 +374,7 @@ def showCategories(catalog_name):
 # Create a new catalog item
 @app.route('/catalog/<catalog_name>/new/', methods=['GET','POST'])
 def newCatalogItem(catalog_name):
-    
+    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
     if 'username' not in login_session:
         return redirect('/login')
     if login_session['user_id'] != catalog.user_id:
@@ -428,7 +423,7 @@ def editCatalogItem(catalog_name, catalog_item_tittle):
 
 #Delete a category item
 @app.route('/catalog/<catalog_name>/<catalog_item_tittle>/delete',
-           methods = ['GET', 'POST'])
+           methods=['GET', 'POST'])
 def deleteCatalogItem(catalog_name, catalog_item_tittle):
     if 'username' not in login_session:
         return redirect('/login')
@@ -441,21 +436,27 @@ def deleteCatalogItem(catalog_name, catalog_item_tittle):
         session.delete(itemToDelete)
         session.commit()
         flash('Catalog Item Successfully Deleted')
-        return redirect(url_for('showCategories', catalog_name = catalog_name))
+        return redirect(url_for('showCategories',
+                                catalog_name=catalog_name))
     else:
-        return render_template('deleteCatalogItem.html', item=itemToDelete)
+        return render_template('deleteCatalogItem.html',
+                               item=itemToDelete)
 
 #Show a Catalog Item
 @app.route('/catalog/<catalog_name>/<catalog_item_tittle>',
-           methods = ['GET', 'POST'])
+           methods=['GET', 'POST'])
 def showCatalogItem(catalog_name, catalog_item_tittle):
     catalog = session.query(Catalog).filter_by(name=catalog_name).one()
     itemToShow = session.query(CatalogItem).filter_by(tittle=catalog_item_tittle).one()
     creator = getUserInfo(catalog.user_id)
     if 'username' not in login_session or creator.id != login_session['user_id']:
-        return render_template('publicShowCatalogItem.html', item=itemToShow, catalog=catalog)
+        return render_template('publicShowCatalogItem.html',
+                               item=itemToShow,
+                               catalog=catalog)
     else:
-        return render_template('showCatalogItem.html', item=itemToShow, catalog=catalog)
+        return render_template('showCatalogItem.html',
+                               item=itemToShow,
+                               catalog=catalog)
 
 # Disconnect based on provider
 @app.route('/disconnect')
@@ -468,11 +469,11 @@ def disconnect():
         if login_session['provider'] == 'facebook':
             fbdisconnect()
             del login_session['facebook_id']
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
-        del login_session['user_id']
-        del login_session['provider']
+            del login_session['username']
+            del login_session['email']
+            del login_session['picture']
+            del login_session['user_id']
+            del login_session['provider']
         flash("You have successfully been logged out.")
         return redirect(url_for('showCatalogs'))
     else:
@@ -482,6 +483,6 @@ def disconnect():
 
 
 if __name__ == '__main__':
-  app.secret_key = 'super_secret_key'
-  app.debug = True
-  app.run(host = '0.0.0.0', port = 5000)
+    app.secret_key = 'super_secret_key'
+    app.debug = True
+    app.run(host = '0.0.0.0', port = 5000)

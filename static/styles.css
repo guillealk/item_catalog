@@ -6,14 +6,14 @@
 h1 {
 	font-family: "Helvetica Neue Light", Roboto, Helvetica, Arial, sans-serif;
 	font-size: 50px;
-	color: #51453B;
+	color: rgb(59, 62, 81);
 	line-height: 60px;
 	font-weight: 300;
 }
 
 h2 {
 	font-size: 24px;
-	color: #42C3C9;
+	color: rgb(66, 140, 201);
 	line-height: 29px;
 }
 
@@ -25,14 +25,14 @@ h3 {
  p {
  	font-family: "Helvetica Neue", Roboto, Helvetica, Arial, sans-serif;
  	font-size: 16px;
- 	color: #7B7573;
+ 	color: rgb(115, 117, 123);
  	line-height: 24px;
  	font-weight: 400;
  }
 
  strong {
  	font-size: 16px;
- 	color: #7B7573;
+ 	color: rgb(117, 115, 123);
  	line-height: 24px;
  }
 
@@ -56,12 +56,12 @@ h3 {
 .btn {
 	padding: 20px;
 	margin: 0;
-	border-color: #9FB80A;
+	border-color: rgb(10, 85, 184);
 	border-width: 2px;
-	color: #9FB80A;;
+	color: rgb(22, 10, 184);;
 }
 .btn:hover {
-	border-color: #9FB80A;
+	border-color: rgb(10, 13, 184);
 }
 .btn.delete {
 	border-color: #aaaaaa;
@@ -93,21 +93,21 @@ h3 {
 	height: 15px;
 }
 .divider.blue {
-	background-color: #42C3C9;
+	background-color: rgb(66, 124, 201);
 }
 .divider.green {
-	background-color: #9FB80A;
+	background-color: rgb(80, 161, 100);
 }
 .banner.main {
 	height: 150px;
-	background: url("/static/top-banner.jpg");
+	background: url("/static/top-banner2.png");
 	background-position: right;
 	background-repeat: no-repeat;
 	background-size: cover;
 }
 .banner.menu {
 	height: 150px;
-	background-color: #E1E17F;
+	background-color: rgb(96, 146, 98);
 }
 .banner.profile {
 	height: 150px;
@@ -118,11 +118,11 @@ h3 {
 	text-align: center;	
 }
  .catalog-list {
- 	background-color: #F0F0F0;
+ 	background-color: rgb(240, 240, 240);
  	padding: 20px;
-u }
+}
  .catalog-list:hover {
- 	background-color: #e1e17f;
+ 	background-color: #7f9ce1	;
  	padding: 20px;
 }
 .catalog-item {
@@ -143,12 +143,12 @@ u }
 }
 .creator figcaption {
 	font-size: 14px;
-	color: #7B7573;
+	color: rgb(116, 115, 123);
 	font-weight: 400;
 	margin-top: -20px;
 }
 .flash {
-	background-color: #98FB98;
+	background-color: rgb(152, 195, 251);
 	width:100%;
 	text-decoration: none;
 
