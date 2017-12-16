@@ -267,24 +267,20 @@ def gdisconnect():
 
 
 # JSON APIs to view Catalog Information
-@app.route('/catalog/<catalog_name>/catalog/JSON')
-def catalogJSON(catalog_name):
-    catalog = session.Catalogquery(Catalog).filter_by(id=catalog_name).one()
-    items = session.query(CatalogItem).filter_by(
-        catalog_name=catalog_name).all()
-    return jsonify(CatalogItems=[i.serialize for i in items])
-
-
-@app.route('/catalog/<catalog_name>/category/<catalog_item_tittle>/JSON')
-def catalogItemJSON(catalog_name, category_id):
-    catalog_item = session.query(CatalogItem).filter_by(id=category_id).one()
-    return jsonify(catalog_item=catalog_item.serialize)
-
-
-@app.route('/catalog/JSON')
+@app.route('/catalog.json')
 def catalogsJSON():
     catalogs = session.query(Catalog).all()
-    return jsonify(catalogs=[r.serialize for r in catalogs])
+    catalog_items = session.query(CatalogItem).all()
+    cat = []
+    item = []
+    for r in catalogs:
+        item = []
+        for i in catalog_items:
+            if i.catalog_id==r.id:
+                item.append(i.serialize)
+        cat.append(r.serialize)
+        cat.append(item)
+    return jsonify(catalogs=cat)
 
 
 # Catalog methods
