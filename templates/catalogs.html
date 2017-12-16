@@ -1,0 +1,82 @@
+{% extends "main.html" %}
+{% block content %}
+{% include "header.html" %}
+	<div class="row top-menu">
+		<div class="col-md-10"></div>
+		<div class="col-md-2 text-right">
+					</div>
+	</div>
+	<div class="row divider blue">
+		<div class="col-md-12"></div>
+	</div>
+	<div class="row banner main">
+		<div class="col-md-1"></div>
+		<div class="col-md-11 padding-none">
+			<h1>Catalog App</h1>
+		</div>
+	</div>
+
+<div class = 'flash'>
+	{% with messages = get_flashed_messages() %}
+      {% if messages %}
+          
+        <ul>
+        {% for message in messages %}
+            <li> <strong> {{ message }} </strong> </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    {% endwith %}
+
+</div>
+	
+	<div class="row padding-top padding-bottom">
+		<div class="col-md-1"></div>
+		<div class="col-md-10 padding-none">
+			<a href="{{url_for('newCatalog')}}">
+				<button class="btn btn-default" id="new-catalog">
+					<span class="glyphicon glyphicon-book" aria-hidden="true"></span>Add Catalog
+				</button>
+			</a>
+		</div>
+		<div class="col-md-1"></div>
+	</div>
+	<div>
+		<div class="row">
+			<div class="col-sm-4">
+				<h1>Categories</h1>
+				{% for catalog in catalogs %}
+					<a href = "{{url_for('showCategories', catalog_name = catalog.name)}}">
+						<div class="row">
+							<div class="col-md-1"></div>
+								<div class="col-md-10 catalog-list">
+									<h3>{{catalog.name}}</h3>
+								</div>
+							<div class="col-md-1"></div>
+						</div>
+					</a>
+				{% endfor %}
+			</div>
+			<div class="col-sm-8">
+				<h1>Latest items</h1>
+				{% for item in items %}
+					{% for catalog in catalogs %}
+						<a href = "{{url_for('showCatalogItem', catalog_name = catalog.name, catalog_item_tittle = item.tittle)}}">
+								{% if catalog.id == item.catalog_id %}
+									<div class="row">
+										<div class="col-md-1"></div>
+											<div class="col-md-10 catalog-list">
+												<h3>{{item.tittle}} <em>({{catalog.name}})</em> </h3>
+											</div>
+										<div class="col-md-1"></div>
+									</div>
+								{% endif %}	
+						</a>
+					{% endfor %}	
+				{% endfor %}
+			</div>
+
+		  </div>
+	</div>
+	
+{% endblock %}
