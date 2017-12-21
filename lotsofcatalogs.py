@@ -19,9 +19,9 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 # Create dummy user
-User1 = User(name="Guillermo Aranda", email="guillealk@gmail.com",
+user1 = User(name="Guillermo Aranda", email="guillealk@gmail.com",
              picture='https://pbs.twimg.com/profile_images/2671170543/18debd694829ed78203a5a36dd364160_400x400.png')
-session.add(User1)
+session.add(user1)
 session.commit()
 
 

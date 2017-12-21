@@ -22,14 +22,17 @@ class Catalog(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user = relationship(User, cascade="save-update")
+
+    items = relationship("CatalogItem", back_populates="catalog")
 
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
         return {
             'name': self.name,
-            'id': self.id
+            'id': self.id,
+            'user_id':self.user_id
         }
 
 
@@ -40,9 +43,10 @@ class CatalogItem(Base):
     tittle = Column(String(80), nullable=False)
     description = Column(String(250))
     catalog_id = Column(Integer, ForeignKey('catalog.id'))
-    catalog = relationship(Catalog)
+    catalog = relationship(Catalog, back_populates="items")
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user = relationship(User, cascade="save-update")
+
 
     @property
     def serialize(self):

@@ -12,6 +12,7 @@ import json
 from flask import make_response
 import requests
 from database_setup import Base, Catalog, CatalogItem, User
+from functools import wraps
 
 # Flask
 app = Flask(__name__)
@@ -20,13 +21,18 @@ CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Catalog Item App"
 
-
-# Connect to Database and create database session
+############
+# Database #
+############
 engine = create_engine('sqlite:///catalog.db')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
+
+###############
+#Login methods#
+###############
 
 
 # Create anti-forgery state token
@@ -37,6 +43,21 @@ def showLogin():
     login_session['state'] = state
     # return "The current session state is %s" % login_session['state']
     return render_template('login.html', STATE=state)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' in login_session:
+            return f(*args, **kwargs)
+        else:
+            flash("You are not allowed to access there")
+            return redirect('/login')
+    return decorated_function
+
+###################
+# Facebook methods#
+###################
 
 
 @app.route('/fbconnect', methods=['POST'])
@@ -119,6 +140,10 @@ def fbdisconnect():
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
     return "you have been logged out"
+
+###################
+# Google methods  #
+###################
 
 
 @app.route('/gconnect', methods=['POST'])
@@ -209,7 +234,7 @@ def gconnect():
     output += '<img src="'
     output += login_session['picture']
     output += ' " style = "width: 300px; height: 300px;border-radius: 150px;'
-    '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -265,8 +290,27 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+################
+# Json methods #
+################
 
 # JSON APIs to view Catalog Information
+@app.route('/catalog/<catalog_name>/JSON')
+def catalogItemJSON(catalog_name):
+    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
+    items = session.query(CatalogItem).filter_by(catalog_id=catalog.id).all()
+    return jsonify(Catalog=catalog.serialize,
+                   CatalogItems=[i.serialize for i in items])
+
+
+@app.route('/catalog/<catalog_name>/<catalog_item_tittle>/JSON')
+def menuItemJSON(catalog_name, catalog_item_tittle):
+    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
+    catalog_item = session.query(CatalogItem).filter_by(tittle=catalog_item_tittle).one()
+    return jsonify(Catalog= catalog.serialize,
+                   CatalogItem=catalog_item.serialize)
+
+
 @app.route('/catalog.json')
 def catalogsJSON():
     catalogs = session.query(Catalog).all()
@@ -282,8 +326,10 @@ def catalogsJSON():
         cat.append(item)
     return jsonify(catalogs=cat)
 
+###################
+# Catalog methods #
+###################
 
-# Catalog methods
 # Show all catalogs
 @app.route('/')
 @app.route('/catalog/')
@@ -302,12 +348,11 @@ def showCatalogs():
 
 # Create a new catalog
 @app.route('/catalog/new/', methods=['GET', 'POST'])
+@login_required
 def newCatalog():
-    if 'username' not in login_session:
-        return redirect('/login')
-
     if request.method == 'POST':
-        newCatalog = Catalog(name=request.form['name'])
+        newCatalog = Catalog(name=request.form['name'],
+                             user_id=login_session['user_id'])
         session.add(newCatalog)
         flash('New catalog %s Successfully Created' % newCatalog.name)
         session.commit()
@@ -318,28 +363,25 @@ def newCatalog():
 
 # Edit a catalog
 @app.route('/catalog/<catalog_name>/edit/', methods=['GET', 'POST'])
+@login_required
 def editCatalog(catalog_name):
     editedCatalog = session.query(Catalog).filter_by(name=catalog_name).one()
-    if 'username' not in login_session:
-        return redirect('/login')
     if request.method == 'POST':
         if request.form['name']:
             editedCatalog.name = request.form['name']
             flash('catalog Successfully Edited %s' % editedCatalog.name)
             return redirect(url_for('showCatalogs'))
-        else:
+    else:
             return render_template('editCatalog.html',
                                    catalog=editedCatalog)
 
 
 # Delete a catalog
 @app.route('/catalog/<catalog_name>/delete/', methods=['GET', 'POST'])
+@login_required
 def deleteCatalog(catalog_name):
     catalogToDelete = session.query(Catalog).filter_by(
         name=catalog_name).one()
-
-    if 'username' not in login_session:
-        return redirect('/login')
     if catalogToDelete.user_id != login_session['user_id']:
         return "<script>function myFunction() {alert('You are not authorized "
     "to delete this catalog. Please create your own catalog in order to "
@@ -352,6 +394,10 @@ def deleteCatalog(catalog_name):
         return redirect(url_for('showCatalogs', catalog_name=catalog_name))
     else:
         return render_template('deleteCatalog.html', catalog=catalogToDelete)
+
+########################
+# Catalog Item methods #
+########################
 
 
 # Show a catalog category
@@ -376,10 +422,9 @@ def showCategories(catalog_name):
 
 # Create a new catalog item
 @app.route('/catalog/<catalog_name>/new/', methods=['GET', 'POST'])
+@login_required
 def newCatalogItem(catalog_name):
     catalog = session.query(Catalog).filter_by(name=catalog_name).one()
-    if 'username' not in login_session:
-        return redirect('/login')
     if login_session['user_id'] != catalog.user_id:
         return "<script>function myFunction() {alert('You are not authorized"
     " to add menu items to this catalog. Please create your own catalog in "
@@ -402,18 +447,18 @@ def newCatalogItem(catalog_name):
 # Edit a catalog item
 @app.route('/catalog/<catalog_name>/<catalog_item_tittle>/edit',
            methods=['GET', 'POST'])
+@login_required
 def editCatalogItem(catalog_name, catalog_item_tittle):
 
-    if 'username' not in login_session:
-        return redirect('/login')
+    editedItem = session.query(CatalogItem).filter_by(
+        tittle=catalog_item_tittle).one()
+    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
+
     if login_session['user_id'] != catalog.user_id:
         return "<script>function myFunction() "
     "{alert('You are not authorized to edit menu items to"
     "this catalog. Please create your own catalog in order to edit items."
     "');}</script><body onload='myFunction()''>"
-    editedItem = session.query(CatalogItem).filter_by(
-        tittle=catalog_item_tittle).one()
-    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
 
     if request.method == 'POST':
         if request.form['tittle']:
@@ -434,18 +479,19 @@ def editCatalogItem(catalog_name, catalog_item_tittle):
 # Delete a category item
 @app.route('/catalog/<catalog_name>/<catalog_item_tittle>/delete',
            methods=['GET', 'POST'])
+@login_required
 def deleteCatalogItem(catalog_name, catalog_item_tittle):
-    if 'username' not in login_session:
-        return redirect('/login')
+    print ("login_session", login_session['user_id'])
+    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
+    itemToDelete = session.query(CatalogItem).filter_by(
+        tittle=catalog_item_tittle).one()
     if login_session['user_id'] != catalog.user_id:
         return "<script>function myFunction() "
     "{alert('You are not authorized to delete menu items to this catalog. "
     "Please create your own catalog in order to delete items.');}"
     "</script><body onload='myFunction()''>"
 
-    catalog = session.query(Catalog).filter_by(name=catalog_name).one()
-    itemToDelete = session.query(CatalogItem).filter_by(
-        tittle=catalog_item_tittle).one()
+
     if request.method == 'POST':
         session.delete(itemToDelete)
         session.commit()
