@@ -30,9 +30,9 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
-###############
-#Login methods#
-###############
+#################
+# Login methods #
+#################
 
 
 # Create anti-forgery state token
@@ -73,7 +73,9 @@ def fbconnect():
         'web']['app_id']
     app_secret = json.loads(
         open('fb_client_secrets.json', 'r').read())['web']['app_secret']
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (app_id, app_secret, access_token)
+    url = 'https://graph.facebook.com/oauth/access_token'
+    url += '?grant_type=fb_exchange_token&client_id=%s&client_secret=%s'
+    url += '&fb_exchange_token=%s' % (app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
 
@@ -89,7 +91,8 @@ def fbconnect():
     '''
     token = result.split(',')[0].split(':')[1].replace('"', '')
 
-    url = 'https://graph.facebook.com/v2.8/me?access_token=%s&fields=name,id,email' % token
+    url = 'https://graph.facebook.com/'
+    url += 'v2.8/me?access_token=%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     # print "url sent for API access:%s"% url
@@ -104,7 +107,8 @@ def fbconnect():
     login_session['access_token'] = token
 
     # Get user picture
-    url = 'https://graph.facebook.com/v2.8/me/picture?access_token=%s&redirect=0&height=200&width=200' % token
+    url = 'https://graph.facebook.com/v2.8/me/picture'
+    url += '?access_token=%s&redirect=0&height=200&width=20' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     data = json.loads(result)
@@ -125,7 +129,7 @@ def fbconnect():
     output += '<img src="'
     output += login_session['picture']
     output += ' " style = "width: 300px; height: 300px;border-radius: 150px;'
-    '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
 
     flash("Now logged in as %s" % login_session['username'])
     return output
@@ -136,7 +140,8 @@ def fbdisconnect():
     facebook_id = login_session['facebook_id']
     # The access token must me included to successfully logout
     access_token = login_session['access_token']
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id, access_token)
+    url = 'https://graph.facebook.com'
+    url += '/%s/permissions?access_token=%s' % (facebook_id, access_token)
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
     return "you have been logged out"
@@ -169,8 +174,8 @@ def gconnect():
 
     # Check that the access token is valid.
     access_token = credentials.access_token
-    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
-           % access_token)
+    url = 'https://www.googleapis.com/oauth2/v1/'
+    url += 'tokeninfo?access_token=%s' % access_token
     h = httplib2.Http()
     result = json.loads(h.request(url, 'GET')[1])
     # If there was an error in the access token info, abort.
@@ -240,6 +245,39 @@ def gconnect():
     return output
 
 
+# DISCONNECT - Revoke a current user's token and reset their login_session
+@app.route('/gdisconnect')
+def gdisconnect():
+    # Only disconnect a connected user.
+    access_token = login_session.get('access_token')
+    if access_token is None:
+        response = make_response(
+            json.dumps('Current user not connected.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    url = 'https://accounts.google.com/o/oauth2/'
+    url += 'revoke?token=%s' % access_token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+    if result['status'] == '200':
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    else:
+        response = make_response(json.dumps(
+            'Failed to revoke token for given user.', 400))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+
+################
+# User methods #
+################
+
+
 # User Helper Functions
 def createUser(login_session):
     new_user = User(name=login_session['username'],
@@ -264,35 +302,10 @@ def getUserID(email):
         return None
 
 
-# DISCONNECT - Revoke a current user's token and reset their login_session
-@app.route('/gdisconnect')
-def gdisconnect():
-    # Only disconnect a connected user.
-    access_token = login_session.get('access_token')
-    if access_token is None:
-        response = make_response(
-            json.dumps('Current user not connected.'), 401)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[0]
-    if result['status'] == '200':
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
-        response = make_response(json.dumps('Successfully disconnected.'), 200)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    else:
-        response = make_response(json.dumps(
-            'Failed to revoke token for given user.', 400))
-        response.headers['Content-Type'] = 'application/json'
-        return response
-
 ################
 # Json methods #
 ################
+
 
 # JSON APIs to view Catalog Information
 @app.route('/catalog/<catalog_name>/JSON')
@@ -306,8 +319,9 @@ def catalogItemJSON(catalog_name):
 @app.route('/catalog/<catalog_name>/<catalog_item_tittle>/JSON')
 def menuItemJSON(catalog_name, catalog_item_tittle):
     catalog = session.query(Catalog).filter_by(name=catalog_name).one()
-    catalog_item = session.query(CatalogItem).filter_by(tittle=catalog_item_tittle).one()
-    return jsonify(Catalog= catalog.serialize,
+    catalog_item = session.query(CatalogItem).filter_by(
+        tittle=catalog_item_tittle).one()
+    return jsonify(Catalog=catalog.serialize,
                    CatalogItem=catalog_item.serialize)
 
 
@@ -320,7 +334,7 @@ def catalogsJSON():
     for r in catalogs:
         item = []
         for i in catalog_items:
-            if i.catalog_id==r.id:
+            if i.catalog_id == r.id:
                 item.append(i.serialize)
         cat.append(r.serialize)
         cat.append(item)
@@ -329,6 +343,7 @@ def catalogsJSON():
 ###################
 # Catalog methods #
 ###################
+
 
 # Show all catalogs
 @app.route('/')
@@ -486,11 +501,12 @@ def deleteCatalogItem(catalog_name, catalog_item_tittle):
     itemToDelete = session.query(CatalogItem).filter_by(
         tittle=catalog_item_tittle).one()
     if login_session['user_id'] != catalog.user_id:
-        return "<script>function myFunction() "
-    "{alert('You are not authorized to delete menu items to this catalog. "
-    "Please create your own catalog in order to delete items.');}"
-    "</script><body onload='myFunction()''>"
-
+        output = "<script>function myFunction() "
+        output += "{alert('You are not authorized to delete "
+        output += "menu items to this catalog."
+        output += "Please create your own catalog in order to delete "
+        output += "items.');} </script><body onload='myFunction()''>"
+        return output
 
     if request.method == 'POST':
         session.delete(itemToDelete)
